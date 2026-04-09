@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/* GitHub Dark palette as CSS custom properties */
+@theme {
+  --color-gh-bg: #0d1117;
+  --color-gh-bg-secondary: #161b22;
+  --color-gh-bg-tertiary: #1c2128;
+  --color-gh-border: #30363d;
+  --color-gh-text: #e6edf3;
+  --color-gh-text-muted: #8b949e;
+  --color-gh-accent: #58a6ff;
+  --color-gh-green: #3fb950;
+  --color-gh-red: #ff7b72;
+  --color-gh-yellow: #d29922;
+  --color-gh-orange: #f0883e;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-gh-bg);
+  color: var(--color-gh-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-gh-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-gh-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gh-text-muted);
+}
+
+.constraint-bar-fill {
+  transition: width 0.4s ease-out;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--color-gh-accent) !important;
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.3);
+}
