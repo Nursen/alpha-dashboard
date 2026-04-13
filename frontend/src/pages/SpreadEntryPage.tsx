@@ -343,18 +343,66 @@ export function SpreadEntryPage() {
             </div>
           )}
 
-          {/* Thesis */}
-          <div>
-            <label className="block text-xs text-gh-text-muted mb-1 uppercase tracking-wide">
-              Investment Thesis
-            </label>
-            <textarea
-              value={thesis}
-              onChange={e => setThesis(e.target.value)}
-              placeholder="Why does this spread generate alpha? What's the catalyst? What's the edge?"
-              rows={4}
-              className="w-full px-3 py-2 bg-gh-bg border border-gh-border rounded-lg text-sm text-gh-text resize-y"
-            />
+          {/* Conviction Framework + Thesis */}
+          <div className="p-4 bg-gh-bg border border-gh-border rounded-lg space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs text-gh-text-muted uppercase tracking-wide">Investment Thesis & Conviction</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('conviction-guide');
+                  if (el) el.classList.toggle('hidden');
+                }}
+                className="text-[10px] px-2 py-1 rounded bg-gh-accent/10 text-gh-accent hover:bg-gh-accent/20 transition-colors"
+              >
+                Show Conviction Guide
+              </button>
+            </div>
+
+            {/* Collapsible conviction guide */}
+            <div id="conviction-guide" className="hidden bg-gh-bg-secondary border border-gh-border rounded-lg p-4 space-y-3 text-xs text-gh-text-muted">
+              <p className="text-sm text-gh-text font-medium">Before you commit capital, score this trade honestly:</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <div className="font-medium text-gh-text">What BUILDS conviction</div>
+                  <div className="flex items-start gap-2"><span className="text-gh-green">+</span><span><strong>Thesis clarity</strong> — Can you explain in one sentence why this works?</span></div>
+                  <div className="flex items-start gap-2"><span className="text-gh-green">+</span><span><strong>Multiple confirmations</strong> — Do fundamentals + technicals + macro all agree?</span></div>
+                  <div className="flex items-start gap-2"><span className="text-gh-green">+</span><span><strong>Asymmetric payoff</strong> — Do you gain more if right than you lose if wrong?</span></div>
+                  <div className="flex items-start gap-2"><span className="text-gh-green">+</span><span><strong>Clear catalyst</strong> — Is there a specific event that will reprice this? When?</span></div>
+                  <div className="flex items-start gap-2"><span className="text-gh-green">+</span><span><strong>Identifiable edge</strong> — Why is the market wrong? What do you see that others don't?</span></div>
+                  <div className="flex items-start gap-2"><span className="text-gh-green">+</span><span><strong>Evidence</strong> — Does the backtest work? Is there academic support?</span></div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="font-medium text-gh-text">What DETRACTS from conviction</div>
+                  <div className="flex items-start gap-2"><span className="text-gh-red">-</span><span><strong>Crowded trade</strong> — If everyone sees it, it's priced in</span></div>
+                  <div className="flex items-start gap-2"><span className="text-gh-red">-</span><span><strong>Single dependency</strong> — Only works if one thing happens (coin flip, not conviction)</span></div>
+                  <div className="flex items-start gap-2"><span className="text-gh-red">-</span><span><strong>Can't articulate the bear case</strong> — If you don't know why you might be wrong, you haven't done enough work</span></div>
+                  <div className="flex items-start gap-2"><span className="text-gh-red">-</span><span><strong>Stale or ambiguous data</strong> — Financials are a quarter old, news already priced in</span></div>
+                  <div className="flex items-start gap-2"><span className="text-gh-red">-</span><span><strong>Liquidity concern</strong> — You believe in it but can't exit if wrong</span></div>
+                  <div className="flex items-start gap-2"><span className="text-gh-red">-</span><span><strong>Time horizon mismatch</strong> — Thesis needs 3 years but you have 5 weeks</span></div>
+                </div>
+              </div>
+
+              <div className="border-t border-gh-border pt-3 mt-2">
+                <div className="font-medium text-gh-text mb-1">Bridgewater-style conviction = systematic evidence, not gut feel</div>
+                <p>Use conviction to decide <em>whether</em> to enter. Use risk constraints to decide <em>how much</em> to allocate. Your thesis below should address: (1) why this spread generates alpha, (2) what catalyst triggers it, (3) what your edge is, and (4) what would make you exit early.</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-gh-text-muted mb-1">
+                Investment Thesis
+              </label>
+              <textarea
+                value={thesis}
+                onChange={e => setThesis(e.target.value)}
+                placeholder={"1. Why does this spread generate alpha?\n2. What's the catalyst and when?\n3. What's your edge — why is the market wrong?\n4. What would make you exit early (besides stop loss)?"}
+                rows={5}
+                className="w-full px-3 py-2 bg-gh-bg-secondary border border-gh-border rounded-lg text-sm text-gh-text resize-y"
+              />
+            </div>
           </div>
 
           {/* Entry date + stop loss */}
