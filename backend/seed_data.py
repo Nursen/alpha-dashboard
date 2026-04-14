@@ -148,10 +148,18 @@ async def seed_mongo():
 
 
 if __name__ == "__main__":
+    # Load .env before anything else
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
+
     # Try MongoDB first, fall back to JSON
     try:
         from config import MONGODB_URI
         from motor.motor_asyncio import AsyncIOMotorClient
+        print(f"Connecting to MongoDB: {MONGODB_URI[:40]}...")
         asyncio.run(seed_mongo())
     except Exception as e:
         print(f"MongoDB unavailable ({e}), seeding to JSON file...")

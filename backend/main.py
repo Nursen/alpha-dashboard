@@ -28,9 +28,24 @@ class DynamicCORSMiddleware(BaseHTTPMiddleware):
         return response
 
 
+async def _auto_seed_if_empty():
+    """Seed with mandate pairs if database is empty (e.g., fresh deploy)."""
+    from db import get_db
+    db = get_db()
+    count = await db.spreads.count_documents({})
+    if count == 0:
+        from seed_data import seed_json
+        seed_json()
+        # Reload the JSON store
+        if hasattr(db, 'spreads') and hasattr(db.spreads, '_load'):
+            db.spreads._load()
+        print(f"Auto-seeded {8} mandate pairs (empty database detected)")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_db()
+    await _auto_seed_if_empty()
     yield
     await close_db()
 
