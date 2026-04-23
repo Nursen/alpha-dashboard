@@ -175,7 +175,7 @@ function CorrelationHeatmap({ data }: { data: ThemeCorrelation }) {
       ],
       zmin: -1,
       zmax: 1,
-      text: data.matrix.map(row => row.map(v => v.toFixed(2))),
+      text: data.matrix.map(row => row.map(v => v.toFixed(2))) as unknown as string[],
       texttemplate: '%{text}',
       textfont: { size: 11, color: '#c9d1d9' },
       hovertemplate: '%{x} vs %{y}: %{z:.2f}<extra></extra>',
