@@ -152,6 +152,68 @@ export interface PortfolioPnL {
 }
 
 // ---------------------------------------------------------------------------
+// PnL Module (StockTrak snapshot-based)
+// ---------------------------------------------------------------------------
+
+export interface PnLPosition {
+  symbol: string;
+  description: string;
+  quantity: number;
+  currency: string;
+  last_price: number;
+  price_paid: number;
+  day_change: number;
+  profit_loss: number;
+  market_value: number;
+  pnl_pct: number;
+  side: 'long' | 'short';
+  asset_class: string;
+  theme: string;
+}
+
+export interface PnLTheme {
+  theme: string;
+  pnl: number;
+  pnl_pct: number;
+  market_value: number;
+}
+
+export interface PnLAssetClass {
+  asset_class: string;
+  pnl: number;
+  market_value: number;
+}
+
+export interface PnLLatest {
+  has_data: boolean;
+  message?: string;
+  upload_date?: string;
+  num_positions?: number;
+  portfolio_value?: number;
+  total_pnl?: number;
+  total_pnl_pct?: number;
+  pnl_by_theme?: PnLTheme[];
+  pnl_by_asset_class?: PnLAssetClass[];
+  positions?: PnLPosition[];
+  periods?: {
+    wtd: number;
+    mtd: number;
+    ttd: number;
+  };
+}
+
+export interface NavPoint {
+  date: string;
+  value: number;
+}
+
+export interface PnLHistory {
+  num_snapshots: number;
+  nav_series: NavPoint[];
+  initial_value: number;
+}
+
+// ---------------------------------------------------------------------------
 // Portfolio: Optimization
 // ---------------------------------------------------------------------------
 
@@ -271,4 +333,100 @@ export interface PairComparison {
     favors: 'long' | 'short';
   }>;
   side_by_side: Record<string, { long: number | null; short: number | null }>;
+}
+
+// ---------------------------------------------------------------------------
+// Position-Level Risk (StockTrak positions)
+// ---------------------------------------------------------------------------
+
+export interface RiskExposures {
+  gross_exposure: number;
+  net_exposure: number;
+  long_exposure: number;
+  short_exposure: number;
+  gross_exposure_pct: number;
+  net_exposure_pct: number;
+  long_short_ratio: number | null;
+  beta_adjusted_net_exposure: number;
+  beta_adjusted_net_pct: number;
+  missing_beta_tickers: string[];
+}
+
+export interface VaRBucket {
+  var_95_pct: number;
+  var_99_pct: number;
+  var_95_dollar: number;
+  var_99_dollar: number;
+}
+
+export interface VaRData {
+  parametric: VaRBucket;
+  historical: VaRBucket;
+  portfolio_daily_vol_pct: number;
+  num_observations: number;
+  error?: string;
+}
+
+export interface DrawdownData {
+  max_drawdown_pct: number;
+  max_drawdown_date: string | null;
+  current_drawdown_pct: number;
+  recovery_days: number | null;
+  nav_dates: string[];
+  nav_values: number[];
+  error?: string;
+}
+
+export interface ThemeCorrelation {
+  themes: string[];
+  matrix: number[][];
+}
+
+export interface ScenarioResult {
+  scenario: string;
+  category: string;
+  impact_dollar: number;
+  impact_pct: number;
+}
+
+export interface PositionFlag {
+  ticker: string;
+  side: string;
+  pnl_pct: number;
+  pnl_dollar: number;
+  market_value: number;
+  flag: 'winner' | 'loser';
+  message: string;
+}
+
+export interface PositionDetail {
+  ticker: string;
+  side: string;
+  shares: number;
+  entry_price: number;
+  current_price: number;
+  market_value: number;
+  pnl_pct: number;
+  pnl_dollar: number;
+  weight_pct: number;
+  beta: number | null;
+  theme: string;
+}
+
+export interface RiskSummary {
+  exposures: RiskExposures;
+  var: VaRData;
+  drawdown: DrawdownData;
+  correlation: ThemeCorrelation;
+  scenarios: ScenarioResult[];
+  flags: PositionFlag[];
+  positions: PositionDetail[];
+  meta: {
+    num_positions: number;
+    num_long: number;
+    num_short: number;
+    tickers_with_data: number;
+    tickers_missing_data: string[];
+    portfolio_value: number;
+  };
 }

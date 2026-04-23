@@ -135,6 +135,7 @@ class JsonDB:
         self.spreads = JsonCollection(data_dir / "spreads.json")
         self.portfolio_snapshots = JsonCollection(data_dir / "snapshots.json")
         self.alerts = JsonCollection(data_dir / "alerts.json")
+        self.pnl_snapshots = JsonCollection(data_dir / "pnl_snapshots.json")
 
 
 async def connect_db():

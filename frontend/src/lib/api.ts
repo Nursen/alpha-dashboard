@@ -167,3 +167,81 @@ export function getPortfolioOptimization(): Promise<OptimizationResult> {
 export function getPortfolioRisk(): Promise<PortfolioRisk> {
   return api<PortfolioRisk>('/portfolio/risk');
 }
+
+// ---------------------------------------------------------------------------
+// PnL Module (StockTrak snapshots)
+// ---------------------------------------------------------------------------
+
+import type { PnLLatest, PnLHistory, PnLTheme, PnLAssetClass } from './types';
+
+const API_BASE_RAW = import.meta.env.VITE_API_URL || '/api';
+
+export async function uploadPnLCsv(
+  positionsFile: File,
+  summaryFile?: File,
+  snapshotDate?: string,
+): Promise<{ status: string; snapshot_id: string; num_positions: number; portfolio_value: number }> {
+  const formData = new FormData();
+  formData.append('positions_file', positionsFile);
+  if (summaryFile) formData.append('summary_file', summaryFile);
+  if (snapshotDate) formData.append('snapshot_date', snapshotDate);
+
+  const res = await fetch(`${API_BASE_RAW}/pnl/upload`, {
+    method: 'POST',
+    headers: { 'X-Dev-User': 'nursen' },
+    body: formData,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Upload failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export function getPnLLatest(): Promise<PnLLatest> {
+  return api<PnLLatest>('/pnl/latest');
+}
+
+export function getPnLHistory(): Promise<PnLHistory> {
+  return api<PnLHistory>('/pnl/history');
+}
+
+export function getPnLByTheme(): Promise<{ themes: PnLTheme[] }> {
+  return api<{ themes: PnLTheme[] }>('/pnl/by-theme');
+}
+
+export function getPnLByAssetClass(): Promise<{ asset_classes: PnLAssetClass[] }> {
+  return api<{ asset_classes: PnLAssetClass[] }>('/pnl/by-asset-class');
+}
+
+// ---------------------------------------------------------------------------
+// Risk Management (position-level risk from StockTrak)
+// ---------------------------------------------------------------------------
+
+import type {
+  RiskSummary,
+  VaRData,
+  ThemeCorrelation,
+  ScenarioResult,
+  PositionFlag,
+} from './types';
+
+export function getRiskSummary(): Promise<RiskSummary> {
+  return api<RiskSummary>('/risk/summary');
+}
+
+export function getRiskVar(): Promise<VaRData> {
+  return api<VaRData>('/risk/var');
+}
+
+export function getRiskCorrelation(): Promise<ThemeCorrelation> {
+  return api<ThemeCorrelation>('/risk/correlation');
+}
+
+export function getRiskScenarios(): Promise<{ scenarios: ScenarioResult[] }> {
+  return api<{ scenarios: ScenarioResult[] }>('/risk/scenarios');
+}
+
+export function getRiskFlags(): Promise<{ flags: PositionFlag[] }> {
+  return api<{ flags: PositionFlag[] }>('/risk/flags');
+}

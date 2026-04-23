@@ -9,6 +9,7 @@ const NAV_ITEMS: { to: string; label: string; icon: string; disabled?: boolean }
   { to: '/spreads/new', label: 'New Spread', icon: '+' },
   { to: '/portfolio', label: 'Portfolio', icon: '\u25A4' },
   { to: '/risk', label: 'Risk', icon: '\u25C7' },
+  { to: '/pnl', label: 'P&L', icon: '$' },
   { to: '/explore', label: 'Explore', icon: '\u25CB' },
 ];
 
@@ -17,6 +18,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/spreads/new': 'New Spread',
   '/portfolio': 'Portfolio',
   '/risk': 'Risk Monitor',
+  '/pnl': 'P&L Analysis',
   '/explore': 'Explore',
 };
 

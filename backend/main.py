@@ -6,7 +6,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from config import ALLOWED_ORIGINS
 from db import connect_db, close_db
-from routers import spreads, portfolio, market_data, fundamentals, news, explore
+from routers import spreads, portfolio, market_data, fundamentals, news, explore, pnl, risk
 
 
 # Middleware to allow any *.vercel.app origin (deployed previews, etc.)
@@ -76,6 +76,8 @@ app.include_router(market_data.router)
 app.include_router(fundamentals.router)
 app.include_router(news.router)
 app.include_router(explore.router)
+app.include_router(pnl.router)
+app.include_router(risk.router)
 
 
 @app.get("/health")

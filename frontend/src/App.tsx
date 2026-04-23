@@ -6,6 +6,7 @@ import { SpreadReviewPage } from '@/pages/SpreadReviewPage';
 import { PortfolioPage } from '@/pages/PortfolioPage';
 import { ExplorePage } from '@/pages/ExplorePage';
 import { RiskPage } from '@/pages/RiskPage';
+import { PnLPage } from '@/pages/PnLPage';
 import { ToastProvider } from '@/components/Toast';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
             <Route path="/risk" element={<RiskPage />} />
             <Route path="/spreads/:id" element={<SpreadReviewPage />} />
             <Route path="/explore" element={<ExplorePage />} />
+            <Route path="/pnl" element={<PnLPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

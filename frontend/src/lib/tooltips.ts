@@ -356,6 +356,71 @@ export const SCREENER_TOOLTIPS = {
   },
 } as const;
 
+// ---------------------------------------------------------------------------
+// Position-Level Risk Page (StockTrak positions)
+// ---------------------------------------------------------------------------
+
+export const POSITION_RISK_TOOLTIPS = {
+  grossExposure: {
+    title: 'Gross Exposure',
+    explanation:
+      'Total dollar value of all positions (longs + shorts), ignoring direction. Measures how much capital is deployed. Higher = more leverage. Think of it as the "total bet size" of your portfolio.',
+    source: 'Sum of |market value| for all positions',
+  },
+  netExposure: {
+    title: 'Net Exposure',
+    explanation:
+      'Long market value minus short market value. This is your directional bet. If positive, you profit when markets go up. For market neutral, this should be near zero.',
+    source: 'Long MV - Short MV from current position prices',
+  },
+  betaAdjustedNet: {
+    title: 'Beta-Adjusted Net Exposure',
+    explanation:
+      'Net exposure weighted by each position\'s beta (market sensitivity). A stock with beta 2.0 contributes twice as much market exposure as one with beta 1.0. This is a better measure of true market exposure than raw net.',
+    source: 'Sum of (beta_i x signed_MV_i) from Yahoo Finance betas',
+  },
+  longShortRatio: {
+    title: 'Long/Short Ratio',
+    explanation:
+      'Total long market value divided by total short market value. A ratio of 1.0 means perfectly balanced. Above 1.0 = net long bias. Below 1.0 = net short bias.',
+  },
+  parametricVar: {
+    title: 'Parametric VaR',
+    explanation:
+      'Value at Risk assuming returns follow a normal (bell curve) distribution. "On 95% of days, we won\'t lose more than X." Like P95 latency for your portfolio. The dollar amount shows the actual dollar loss at that confidence level.',
+    source: 'Mean + z-score x std_dev of daily portfolio returns, ~1 year',
+  },
+  historicalVar: {
+    title: 'Historical VaR',
+    explanation:
+      'Value at Risk using actual historical returns (no normal distribution assumption). Often more accurate because real returns have "fat tails" — extreme moves happen more often than a bell curve predicts.',
+    source: '5th/1st percentile of actual daily portfolio P&L, ~1 year',
+  },
+  maxDrawdown: {
+    title: 'Max Drawdown',
+    explanation:
+      'Worst peak-to-trough decline. If your portfolio hit $105K then dropped to $90K, that\'s a -14.3% drawdown. This is the "worst pain" metric — how bad did it get?',
+    source: 'Simulated NAV from historical returns of current holdings',
+  },
+  currentDrawdown: {
+    title: 'Current Drawdown',
+    explanation:
+      'How far below the portfolio\'s all-time high we are right now. 0% means we\'re at peak. -5% means we\'re 5% below our best point.',
+  },
+  themeCorrelation: {
+    title: 'Theme Correlation',
+    explanation:
+      'How correlated your investment themes are with each other. Low inter-theme correlation means good diversification — when one theme loses, others don\'t necessarily follow. High correlation (>0.5) means your themes move together, reducing diversification benefit.',
+    source: 'Value-weighted returns by theme, 6-month rolling window',
+  },
+  scenarioAnalysis: {
+    title: 'Scenario Analysis',
+    explanation:
+      'Estimates how much the portfolio would lose (or gain) under hypothetical stress events. Uses position betas for market shocks, duration for rate moves, and FX exposure for dollar strength. These are estimates, not guarantees.',
+    source: 'Position betas from Yahoo Finance, bond durations estimated',
+  },
+} as const;
+
 export const ENTRY_TOOLTIPS = {
   assetClass: {
     title: 'Asset Class',
