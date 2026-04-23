@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-jose[cryptography]
+httpx
+pydantic
+python-dotenv
+yfinance
+pandas
+numpy
+scipy
+statsmodels
+cachetools
+python-multipart

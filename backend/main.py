@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from config import ALLOWED_ORIGINS
-from db import connect_db, close_db
+from db import connect_db, close_db, get_db
 from routers import spreads, portfolio, market_data, fundamentals, news, explore, pnl, risk
 
 
@@ -28,9 +28,12 @@ class DynamicCORSMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# Track whether we've initialized (for lazy init on serverless)
+_db_initialized = False
+
+
 async def _auto_seed_if_empty():
     """Seed with mandate pairs if database is empty (e.g., fresh deploy)."""
-    from db import get_db
     db = get_db()
     count = await db.spreads.count_documents({})
     if count == 0:
@@ -42,10 +45,31 @@ async def _auto_seed_if_empty():
         print(f"Auto-seeded {8} mandate pairs (empty database detected)")
 
 
+async def _ensure_db():
+    """Lazy DB init — needed on Vercel where lifespan events don't fire."""
+    global _db_initialized
+    if not _db_initialized:
+        await connect_db()
+        await _auto_seed_if_empty()
+        _db_initialized = True
+
+
+class LazyInitMiddleware(BaseHTTPMiddleware):
+    """Ensure DB is connected before handling requests.
+
+    On Vercel serverless, FastAPI lifespan events don't fire.
+    This middleware lazily initializes the DB on the first request.
+    Locally (with uvicorn), lifespan runs first so this is a no-op.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        await _ensure_db()
+        return await call_next(request)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await connect_db()
-    await _auto_seed_if_empty()
+    await _ensure_db()
     yield
     await close_db()
 
@@ -68,6 +92,9 @@ app.add_middleware(
 
 # Also allow any *.vercel.app preview deploy
 app.add_middleware(DynamicCORSMiddleware)
+
+# Lazy DB init for serverless (Vercel) — no-op if lifespan already ran
+app.add_middleware(LazyInitMiddleware)
 
 # Routers
 app.include_router(spreads.router)
