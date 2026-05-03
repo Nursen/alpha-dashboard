@@ -215,6 +215,36 @@ export function getPnLByAssetClass(): Promise<{ asset_classes: PnLAssetClass[] }
 }
 
 // ---------------------------------------------------------------------------
+// Trade Journal (TradeNotes)
+// ---------------------------------------------------------------------------
+
+import type { TradesResponse, SpreadsExtractedResponse, TradeNotesUploadResult } from './types';
+
+export async function uploadTradeNotes(file: File): Promise<TradeNotesUploadResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${API_BASE_RAW}/pnl/upload-notes`, {
+    method: 'POST',
+    headers: { 'X-Dev-User': 'nursen' },
+    body: formData,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Upload failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export function getTrades(): Promise<TradesResponse> {
+  return api<TradesResponse>('/pnl/trades');
+}
+
+export function getExtractedSpreads(): Promise<SpreadsExtractedResponse> {
+  return api<SpreadsExtractedResponse>('/pnl/spreads-extracted');
+}
+
+// ---------------------------------------------------------------------------
 // Risk Management (position-level risk from StockTrak)
 // ---------------------------------------------------------------------------
 
@@ -224,6 +254,8 @@ import type {
   ThemeCorrelation,
   ScenarioResult,
   PositionFlag,
+  FactorExposure,
+  LiquidityPosition,
 } from './types';
 
 export function getRiskSummary(): Promise<RiskSummary> {
@@ -244,4 +276,16 @@ export function getRiskScenarios(): Promise<{ scenarios: ScenarioResult[] }> {
 
 export function getRiskFlags(): Promise<{ flags: PositionFlag[] }> {
   return api<{ flags: PositionFlag[] }>('/risk/flags');
+}
+
+export function getRiskFactors(): Promise<FactorExposure> {
+  return api<FactorExposure>('/risk/factors');
+}
+
+export function getRiskLiquidity(): Promise<{ positions: LiquidityPosition[] }> {
+  return api<{ positions: LiquidityPosition[] }>('/risk/liquidity');
+}
+
+export function getRiskOptimize(): Promise<import('./types').OptimizationResult> {
+  return api<import('./types').OptimizationResult>('/risk/optimize');
 }

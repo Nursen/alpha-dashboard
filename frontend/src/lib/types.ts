@@ -214,15 +214,50 @@ export interface PnLHistory {
 }
 
 // ---------------------------------------------------------------------------
-// Portfolio: Optimization
+// Trade Journal (TradeNotes)
 // ---------------------------------------------------------------------------
 
-export interface OptimizationResult {
-  current_weights: Record<string, number>;
-  optimal_weights: Record<string, number>;
-  current_sharpe: number;
-  optimal_sharpe: number;
-  rebalance_suggestions: string[];
+export interface TradeNote {
+  trade_date: string;
+  symbol: string;
+  side: string;
+  note: string;
+  pair_symbol: string | null;
+  theme: string;
+  ic_rejected: boolean;
+  is_correction: boolean;
+  asset_class: string;
+}
+
+export interface TradesResponse {
+  has_data: boolean;
+  trades: TradeNote[];
+  num_trades: number;
+  ic_rejections: number;
+  corrections: number;
+}
+
+export interface ExtractedSpread {
+  long_symbol: string;
+  short_symbol: string;
+  theme: string;
+  notes: string[];
+  first_trade: string;
+}
+
+export interface SpreadsExtractedResponse {
+  has_data: boolean;
+  spreads: ExtractedSpread[];
+  num_spreads: number;
+}
+
+export interface TradeNotesUploadResult {
+  status: string;
+  id: string;
+  num_trades: number;
+  num_spreads: number;
+  ic_rejections: number;
+  corrections: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -382,13 +417,6 @@ export interface ThemeCorrelation {
   matrix: number[][];
 }
 
-export interface ScenarioResult {
-  scenario: string;
-  category: string;
-  impact_dollar: number;
-  impact_pct: number;
-}
-
 export interface PositionFlag {
   ticker: string;
   side: string;
@@ -401,6 +429,7 @@ export interface PositionFlag {
 
 export interface PositionDetail {
   ticker: string;
+  name: string;
   side: string;
   shares: number;
   entry_price: number;
@@ -410,7 +439,85 @@ export interface PositionDetail {
   pnl_dollar: number;
   weight_pct: number;
   beta: number | null;
+  beta_adjusted_exposure: number | null;
   theme: string;
+  sector: string;
+  country: string;
+  region: string;
+  max_drawdown_5y_pct: number | null;
+  skewness: number | null;
+  kurtosis: number | null;
+}
+
+export interface ScenarioResult {
+  scenario: string;
+  category: string;
+  impact_dollar: number;
+  impact_pct: number;
+  description?: string;
+}
+
+export interface ExposureBreakdown {
+  name: string;
+  long_exposure: number;
+  short_exposure: number;
+  gross_exposure: number;
+  net_exposure: number;
+  gross_pct: number;
+  net_pct: number;
+}
+
+export interface SummaryStats {
+  total_positions: number;
+  num_themes: number;
+  avg_positions_per_theme: number;
+  max_theme_size_pct: number;
+  max_theme_name: string;
+  max_position_size_pct: number;
+  max_position_ticker: string;
+}
+
+export interface BetaAdjustedGroup {
+  name: string;
+  beta_adj_gross: number;
+  beta_adj_net: number;
+  raw_gross: number;
+  raw_net: number;
+}
+
+export interface FactorExposure {
+  factor_names: string[];
+  by_position: Array<{
+    ticker: string;
+    theme: string;
+    side: string;
+    alpha_daily: number;
+    factor_betas: Record<string, number>;
+  }>;
+  by_theme: Array<{
+    theme: string;
+    factor_betas: Record<string, number>;
+  }>;
+  methodology: string;
+}
+
+export interface LiquidityPosition {
+  ticker: string;
+  shares: number;
+  avg_daily_volume: number;
+  daily_capacity_15pct: number;
+  days_to_liquidate: number | null;
+  liquidity_flag: 'ok' | 'illiquid';
+}
+
+export interface OptimizationResult {
+  current_weights: Record<string, number>;
+  optimal_weights: Record<string, number>;
+  current_sharpe: number;
+  optimal_sharpe: number;
+  suggestions: string[];
+  methodology?: string;
+  error?: string;
 }
 
 export interface RiskSummary {
@@ -421,6 +528,14 @@ export interface RiskSummary {
   scenarios: ScenarioResult[];
   flags: PositionFlag[];
   positions: PositionDetail[];
+  exposure_by_sector: ExposureBreakdown[];
+  exposure_by_country: ExposureBreakdown[];
+  exposure_by_region: ExposureBreakdown[];
+  exposure_by_theme: ExposureBreakdown[];
+  summary_stats: SummaryStats;
+  beta_adjusted_by_theme: BetaAdjustedGroup[];
+  beta_adjusted_by_sector: BetaAdjustedGroup[];
+  beta_adjusted_by_country: BetaAdjustedGroup[];
   meta: {
     num_positions: number;
     num_long: number;

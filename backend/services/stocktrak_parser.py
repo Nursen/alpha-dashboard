@@ -14,7 +14,7 @@ Edge cases:
 import csv
 import io
 import re
-from datetime import date
+from datetime import date, datetime
 
 
 # ---------------------------------------------------------------------------
@@ -140,6 +140,196 @@ def parse_open_positions(csv_text: str) -> list[dict]:
         })
 
     return positions
+
+
+def parse_trade_notes(csv_text: str) -> list[dict]:
+    """
+    Parse StockTrak TradeNotes CSV.
+
+    Returns list of trade dicts with extracted pair relationships,
+    IC decisions, and corrections.
+    """
+    reader = csv.DictReader(io.StringIO(csv_text))
+    trades: list[dict] = []
+
+    for row in reader:
+        symbol = row.get("Symbol", "").strip()
+        if not symbol:
+            continue
+
+        raw_side = row.get("OrderSide", "").strip()
+        note = row.get("Note", "").strip().strip('"')
+        trade_date_str = row.get("TradeDate", "").strip()
+
+        # Parse date
+        trade_date = None
+        for fmt in ("%m/%d/%Y %I:%M:%S %p", "%m/%d/%Y %H:%M:%S %p", "%Y-%m-%d"):
+            try:
+                trade_date = datetime.strptime(trade_date_str, fmt)
+                break
+            except (ValueError, TypeError):
+                continue
+
+        # Normalize side
+        side = raw_side.lower().strip()
+
+        # Extract pair symbol from note text
+        pair_symbol = _extract_pair_symbol(note, symbol)
+
+        # Flag IC rejections
+        note_lower = note.lower()
+        ic_rejected = any(phrase in note_lower for phrase in [
+            "did not pass ic", "not approved by ic", "not covered by ic",
+        ])
+
+        # Flag corrections / wrong trades
+        is_correction = any(phrase in note_lower for phrase in [
+            "wrong trade", "wrong stock",
+        ])
+
+        # Infer theme from symbol or note
+        theme = _get_theme(symbol)
+        if theme == "Other":
+            theme = _infer_theme_from_note(note)
+
+        trades.append({
+            "trade_date": trade_date.isoformat() if trade_date else trade_date_str,
+            "symbol": symbol,
+            "side": side,
+            "note": note,
+            "pair_symbol": pair_symbol,
+            "theme": theme,
+            "ic_rejected": ic_rejected,
+            "is_correction": is_correction,
+            "asset_class": _classify_position(symbol),
+        })
+
+    return trades
+
+
+def _extract_pair_symbol(note: str, own_symbol: str) -> str | None:
+    """Extract the paired ticker from a trade note."""
+    if not note:
+        return None
+
+    note_upper = note.upper()
+
+    # Pattern: "Paired with long BILL" or "Paired with short G"
+    m = re.search(r"PAIRED?\s+(?:TRADE\s+)?WITH\s+(?:LONG|SHORT)?\s*([A-Z]{1,5})", note_upper)
+    if m:
+        sym = m.group(1)
+        if sym != own_symbol.upper():
+            return sym
+
+    # Pattern: "pair trade with tesla" — resolve common names to tickers
+    m = re.search(r"PAIR\s+TRADE\s+WITH\s+(\w+)", note_upper)
+    if m:
+        name = m.group(1)
+        resolved = _resolve_name_to_ticker(name)
+        if resolved and resolved != own_symbol.upper():
+            return resolved
+
+    # Pattern: "EUAD long / ITA short" or "XPEV/TSLA pair"
+    m = re.search(r"([A-Z]{2,6})\s*(?:LONG|SHORT)?\s*/\s*([A-Z]{2,6})\s*(?:LONG|SHORT)?", note_upper)
+    if m:
+        t1, t2 = m.group(1), m.group(2)
+        if t1 == own_symbol.upper():
+            return t2
+        if t2 == own_symbol.upper():
+            return t1
+
+    # Pattern: "Paired with long BILL." at end
+    m = re.search(r"PAIRED?\s+WITH\s+(?:LONG|SHORT)\s+([A-Z]{1,6})", note_upper)
+    if m:
+        sym = m.group(1)
+        if sym != own_symbol.upper():
+            return sym
+
+    return None
+
+
+_NAME_TO_TICKER = {
+    "TESLA": "TSLA", "XPENG": "XPEV", "DELL": "DELL", "APPLE": "AAPL",
+    "GOOGLE": "GOOG", "MICROSOFT": "MSFT", "AMAZON": "AMZN",
+}
+
+
+def _resolve_name_to_ticker(name: str) -> str | None:
+    """Resolve a company name to its ticker."""
+    upper = name.upper()
+    if upper in _NAME_TO_TICKER:
+        return _NAME_TO_TICKER[upper]
+    # If it's already a short uppercase string, treat as ticker
+    if len(upper) <= 5 and upper.isalpha():
+        return upper
+    return None
+
+
+# Theme keywords found in notes
+_THEME_KEYWORDS = {
+    "Defense": ["defense", "nato", "lockheed", "rtx", "northrop"],
+    "AI Billing": ["ai automation", "billing", "bpo", "back-office"],
+    "EV / Auto": ["ev ", "electric vehicle", "battery", "lithium", "ice vehicle", "auto part"],
+    "Healthcare / Beauty": ["glp-1", "mounjaro", "zepbound", "beauty", "cosmetic", "tiktok", "morpheus"],
+    "Chemicals": ["chemical", "industrial gas"],
+    "Logistics": ["logistics", "fedex", "ups"],
+    "Tech Hardware": ["dell", "hpe", "hpq"],
+    "Bonds / Rates": ["inflation", "interest rate", "tips", "treasury"],
+    "Volatility": ["volatility", "straddle", "strangle"],
+    "Alternatives": ["bdc", "alternatives", "private credit"],
+    "Emerging Markets": ["india", "vietnam", "emerging"],
+}
+
+
+def _infer_theme_from_note(note: str) -> str:
+    """Try to infer theme from note text using keyword matching."""
+    if not note:
+        return "Other"
+    note_lower = note.lower()
+    for theme, keywords in _THEME_KEYWORDS.items():
+        if any(kw in note_lower for kw in keywords):
+            return theme
+    return "Other"
+
+
+def extract_spreads(trades: list[dict]) -> list[dict]:
+    """
+    From parsed trade notes, extract unique spread/pair relationships.
+
+    Returns list of dicts: {long_symbol, short_symbol, theme, notes}
+    """
+    # Build a map of symbol -> trades that mention a pair
+    pairs: dict[tuple[str, str], dict] = {}
+
+    for t in trades:
+        if not t.get("pair_symbol"):
+            continue
+
+        sym = t["symbol"]
+        pair = t["pair_symbol"]
+
+        # Determine which is long and which is short
+        if t["side"] in ("buy",):
+            long_sym, short_sym = sym, pair
+        elif t["side"] in ("short",):
+            long_sym, short_sym = pair, sym
+        else:
+            continue
+
+        key = tuple(sorted([long_sym, short_sym]))
+        if key not in pairs:
+            pairs[key] = {
+                "long_symbol": long_sym,
+                "short_symbol": short_sym,
+                "theme": t["theme"],
+                "notes": [],
+                "first_trade": t["trade_date"],
+            }
+
+        if t["note"] and t["note"] not in pairs[key]["notes"]:
+            pairs[key]["notes"].append(t["note"])
+
+    return list(pairs.values())
 
 
 def parse_portfolio_summary(csv_text: str) -> dict:

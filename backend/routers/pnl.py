@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Form
 
 from auth import get_current_user
 from db import get_db
-from services.stocktrak_parser import parse_open_positions, parse_portfolio_summary
+from services.stocktrak_parser import parse_open_positions, parse_portfolio_summary, parse_trade_notes, extract_spreads
 from services.pnl_calculator import (
     compute_pnl_from_snapshot,
     compute_period_pnl,
@@ -204,3 +204,124 @@ async def get_pnl_by_asset_class(user_id: str = Depends(get_current_user)):
 
     pnl = compute_pnl_from_snapshot(snapshot)
     return {"asset_classes": pnl.get("pnl_by_asset_class", [])}
+
+
+# ---------------------------------------------------------------------------
+# POST /api/pnl/upload-notes — upload TradeNotes CSV
+# ---------------------------------------------------------------------------
+
+@router.post("/upload-notes")
+async def upload_trade_notes(
+    file: UploadFile = File(...),
+    user_id: str = Depends(get_current_user),
+):
+    """
+    Upload StockTrak TradeNotes CSV, parse trades, extract pairs.
+    Replaces any previously uploaded trade notes.
+    """
+    try:
+        text = (await file.read()).decode("utf-8-sig")
+        trades = parse_trade_notes(text)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to parse TradeNotes CSV: {e}")
+
+    if not trades:
+        raise HTTPException(status_code=400, detail="No trades found in CSV")
+
+    spreads = extract_spreads(trades)
+
+    # Count IC rejections and corrections
+    ic_rejections = sum(1 for t in trades if t.get("ic_rejected"))
+    corrections = sum(1 for t in trades if t.get("is_correction"))
+
+    # Store in DB — replace previous upload
+    db = get_db()
+    if not hasattr(db, "trade_notes"):
+        from db import JsonCollection
+        from pathlib import Path
+        db.trade_notes = JsonCollection(Path(db.data_dir) / "trade_notes.json")
+
+    doc = {
+        "trades": trades,
+        "spreads": spreads,
+        "num_trades": len(trades),
+        "num_spreads": len(spreads),
+        "ic_rejections": ic_rejections,
+        "corrections": corrections,
+        "uploaded_by": user_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Wipe old data and store fresh
+    db.trade_notes._data = []
+    result = await db.trade_notes.insert_one(doc)
+
+    return {
+        "status": "ok",
+        "id": str(result.inserted_id),
+        "num_trades": len(trades),
+        "num_spreads": len(spreads),
+        "ic_rejections": ic_rejections,
+        "corrections": corrections,
+    }
+
+
+# ---------------------------------------------------------------------------
+# GET /api/pnl/trades — all parsed trades with notes
+# ---------------------------------------------------------------------------
+
+@router.get("/trades")
+async def get_trades(user_id: str = Depends(get_current_user)):
+    """Get all parsed trades sorted by date."""
+    db = get_db()
+    if not hasattr(db, "trade_notes"):
+        return {"trades": [], "has_data": False}
+
+    cursor = db.trade_notes.find({})
+    docs = []
+    async for doc in cursor:
+        docs.append(doc)
+
+    if not docs:
+        return {"trades": [], "has_data": False}
+
+    # Use latest upload
+    latest = docs[-1]
+    trades = latest.get("trades", [])
+    # Already sorted by date from parsing order, but ensure it
+    trades.sort(key=lambda t: t.get("trade_date", ""))
+
+    return {
+        "has_data": True,
+        "trades": trades,
+        "num_trades": latest.get("num_trades", 0),
+        "ic_rejections": latest.get("ic_rejections", 0),
+        "corrections": latest.get("corrections", 0),
+    }
+
+
+# ---------------------------------------------------------------------------
+# GET /api/pnl/spreads-extracted — extracted spread/pair relationships
+# ---------------------------------------------------------------------------
+
+@router.get("/spreads-extracted")
+async def get_extracted_spreads(user_id: str = Depends(get_current_user)):
+    """Get extracted spread/pair relationships from trade notes."""
+    db = get_db()
+    if not hasattr(db, "trade_notes"):
+        return {"spreads": [], "has_data": False}
+
+    cursor = db.trade_notes.find({})
+    docs = []
+    async for doc in cursor:
+        docs.append(doc)
+
+    if not docs:
+        return {"spreads": [], "has_data": False}
+
+    latest = docs[-1]
+    return {
+        "has_data": True,
+        "spreads": latest.get("spreads", []),
+        "num_spreads": latest.get("num_spreads", 0),
+    }
